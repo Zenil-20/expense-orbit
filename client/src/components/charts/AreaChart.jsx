@@ -1,18 +1,25 @@
 import { useId, useMemo, useRef, useState } from "react";
 import { formatCurrency } from "../../lib/format";
+import useContainerWidth from "./useContainerWidth";
 
 export default function AreaChart({ data, height = 240, color = "#2DD4BF", label = "Value" }) {
+  const [wrapRef, w] = useContainerWidth(260);
   const svgRef = useRef(null);
   const [hover, setHover] = useState(null);
   const gradId = useId().replace(/:/g, "");
 
-  const w = 720;
-  const padL = 44, padR = 16, padT = 16, padB = 32;
-  const innerW = w - padL - padR;
-  const innerH = height - padT - padB;
+  const narrow = w < 520;
+  const padL = narrow ? 34 : 46;
+  const padR = narrow ? 10 : 16;
+  const padT = 16;
+  const padB = narrow ? 26 : 32;
+  const h = narrow ? Math.min(height, 220) : height;
+  const innerW = Math.max(40, w - padL - padR);
+  const innerH = h - padT - padB;
+  const lineCount = narrow ? 3 : 4;
 
-  const { max, niceMax, pts, path, area, lineCount } = useMemo(() => {
-    if (!data || data.length < 2) return { max: 0, niceMax: 0, pts: [], path: "", area: "" };
+  const { niceMax, pts, path, area } = useMemo(() => {
+    if (!data || data.length < 2) return { niceMax: 0, pts: [], path: "", area: "" };
     const max = Math.max(...data.map((d) => d.value), 1);
     const step = innerW / (data.length - 1);
     const niceMax = niceCeil(max);
@@ -23,17 +30,18 @@ export default function AreaChart({ data, height = 240, color = "#2DD4BF", label
     }));
     const path = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
     const area = `${path} L ${pts[pts.length - 1].x} ${padT + innerH} L ${pts[0].x} ${padT + innerH} Z`;
-    return { max, niceMax, pts, path, area, lineCount: 4 };
+    return { niceMax, pts, path, area };
   }, [data, innerW, innerH, padL, padT]);
 
-  if (!data || data.length < 2) return null;
+  if (!data || data.length < 2) return <div ref={wrapRef} />;
+
+  const labelEvery = narrow ? Math.max(1, Math.ceil(data.length / 6)) : 1;
 
   const onMove = (e) => {
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
-    const scale = w / rect.width;
-    const mx = (e.clientX - rect.left) * scale;
+    const mx = ((e.touches?.[0]?.clientX ?? e.clientX) - rect.left);
     let closest = 0, best = Infinity;
     for (let i = 0; i < pts.length; i++) {
       const d = Math.abs(pts[i].x - mx);
@@ -41,57 +49,68 @@ export default function AreaChart({ data, height = 240, color = "#2DD4BF", label
     }
     setHover(closest);
   };
+  const clearHover = () => setHover(null);
+
+  const tooltipLeft = hover !== null ? Math.max(60, Math.min(w - 60, pts[hover].x)) : 0;
 
   return (
-    <div className="chart-wrap">
-      <svg
-        ref={svgRef}
-        width="100%"
-        viewBox={`0 0 ${w} ${height}`}
-        preserveAspectRatio="xMidYMid meet"
-        onMouseMove={onMove}
-        onMouseLeave={() => setHover(null)}
-        style={{ cursor: "crosshair", display: "block" }}
-      >
-        <defs>
-          <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.42" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
+    <div className="chart-wrap" ref={wrapRef} style={{ touchAction: "pan-y" }}>
+      {w > 0 && (
+        <svg
+          ref={svgRef}
+          width={w}
+          height={h}
+          style={{ display: "block", cursor: "crosshair", touchAction: "pan-y" }}
+          onMouseMove={onMove}
+          onMouseLeave={clearHover}
+          onTouchStart={onMove}
+          onTouchMove={onMove}
+          onTouchEnd={clearHover}
+        >
+          <defs>
+            <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.42" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
 
-        {Array.from({ length: lineCount + 1 }).map((_, i) => {
-          const y = padT + (innerH * i) / lineCount;
-          const v = niceMax - (niceMax * i) / lineCount;
-          return (
-            <g key={i}>
-              <line x1={padL} x2={w - padR} y1={y} y2={y} className="chart-grid" strokeWidth="1" />
-              <text x={padL - 8} y={y + 3} textAnchor="end" className="chart-axis">{formatShort(v)}</text>
-            </g>
-          );
-        })}
+          {Array.from({ length: lineCount + 1 }).map((_, i) => {
+            const y = padT + (innerH * i) / lineCount;
+            const v = niceMax - (niceMax * i) / lineCount;
+            return (
+              <g key={i}>
+                <line x1={padL} x2={w - padR} y1={y} y2={y} className="chart-grid" strokeWidth="1" />
+                <text x={padL - 6} y={y + 4} textAnchor="end" className="chart-axis" fontSize={narrow ? 10 : 11}>
+                  {formatShort(v)}
+                </text>
+              </g>
+            );
+          })}
 
-        <path d={area} fill={`url(#${gradId})`} className="chart-area-fill" />
-        <path d={path} fill="none" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="chart-line" />
+          <path d={area} fill={`url(#${gradId})`} className="chart-area-fill" />
+          <path d={path} fill="none" stroke={color} strokeWidth={narrow ? 2 : 2.4} strokeLinecap="round" strokeLinejoin="round" className="chart-line" />
 
-        {pts.map((p, i) => (
-          <text key={i} x={p.x} y={height - 10} textAnchor="middle" className="chart-axis">{p.l}</text>
-        ))}
+          {pts.map((p, i) => (
+            i % labelEvery === 0 && (
+              <text key={i} x={p.x} y={h - 8} textAnchor="middle" className="chart-axis" fontSize={narrow ? 10 : 11}>{p.l}</text>
+            )
+          ))}
 
-        {hover !== null && (
-          <>
-            <line x1={pts[hover].x} x2={pts[hover].x} y1={padT} y2={padT + innerH} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-            <circle cx={pts[hover].x} cy={pts[hover].y} r="6" fill={color} stroke="#0B1120" strokeWidth="3" />
-          </>
-        )}
-      </svg>
+          {hover !== null && (
+            <>
+              <line x1={pts[hover].x} x2={pts[hover].x} y1={padT} y2={padT + innerH} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+              <circle cx={pts[hover].x} cy={pts[hover].y} r="6" fill={color} stroke="#0B1120" strokeWidth="3" />
+            </>
+          )}
+        </svg>
+      )}
 
       {hover !== null && (
         <div
           className="chart-tooltip"
           style={{
-            left: `${(pts[hover].x / w) * 100}%`,
-            top: `${(pts[hover].y / height) * 100}%`
+            left: `${tooltipLeft}px`,
+            top: `${pts[hover].y}px`
           }}
         >
           <div className="chart-tooltip-title">{pts[hover].l}</div>

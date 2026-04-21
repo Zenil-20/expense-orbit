@@ -5,4 +5,5 @@ export { default as Card } from "./Card";
 export { default as Badge } from "./Badge";
 export { default as Modal } from "./Modal";
 export { default as Drawer } from "./Drawer";
+export { default as Menu } from "./Menu";
 export { default as EmptyState } from "./EmptyState";
