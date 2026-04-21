@@ -440,6 +440,58 @@
 .menu-icon { display: inline-flex; width: 16px; color: inherit; }
 .menu-divider { height: 1px; background: var(--line); margin: 4px 0; }
 
+/* === Mobile bottom sheet === */
+.sheet-root {
+  position: fixed; inset: 0; z-index: var(--z-toast);
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.sheet-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(6, 10, 20, 0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 180ms var(--ease);
+}
+.sheet {
+  position: relative;
+  background: var(--ink-2);
+  border-top: 1px solid var(--line-strong);
+  border-top-left-radius: 22px; border-top-right-radius: 22px;
+  padding: 10px 14px calc(14px + env(safe-area-inset-bottom));
+  box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.5);
+  animation: sheetIn 260ms var(--ease);
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+}
+@keyframes sheetIn {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sheet-grabber {
+  width: 44px; height: 4px; border-radius: 4px;
+  background: var(--line-strong); margin: 4px auto 10px;
+}
+.sheet-body { display: flex; flex-direction: column; overflow-y: auto; }
+.sheet-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 14px;
+  background: transparent; border: none; color: #F8FAFC;
+  font-size: 15px; font-weight: 600;
+  border-radius: 12px; cursor: pointer; text-align: left;
+  min-height: 52px;
+}
+.sheet-item:active { background: rgba(148, 163, 184, 0.08); }
+.sheet-item.is-danger { color: var(--danger); }
+.sheet-item .menu-icon { width: 20px; }
+.sheet-cancel {
+  margin-top: 8px;
+  padding: 14px;
+  background: var(--ink-3); color: #F8FAFC;
+  border: 1px solid var(--line); border-radius: 14px;
+  font-size: 15px; font-weight: 700;
+  cursor: pointer; min-height: 52px;
+}
+.sheet-cancel:active { background: var(--ink-4); }
+
 /* === Category ring === */
 .ring-wrap { display: flex; gap: 18px; align-items: center; }
 .ring-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }

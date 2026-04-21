@@ -18,7 +18,9 @@
       "Bash(git push *)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:expense-orbit-api.onrender.com)",
-      "WebFetch(domain:expense-orbit-alpha.vercel.app)"
+      "WebFetch(domain:expense-orbit-alpha.vercel.app)",
+      "Bash(curl -sL https://expense-orbit-alpha.vercel.app/)",
+      "Bash(curl -sL https://expense-orbit-alpha.vercel.app/assets/index-KRz_WBKl.js)"
     ]
   }
 }
