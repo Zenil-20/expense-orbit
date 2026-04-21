@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+client/dist/
+client/node_modules/
+*.pdf
+sla-test.pdf
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/

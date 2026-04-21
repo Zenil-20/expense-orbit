@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node -e \"require\\('./services/emailTemplates'\\); require\\('./services/brand'\\); require\\('./controllers/authController'\\); require\\('./controllers/expenseController'\\); console.log\\('OK'\\)\")",
+      "Bash(node -e \"require\\('./services/emailTemplates'\\); require\\('./services/pdfService'\\); require\\('./controllers/expenseController'\\); require\\('./routes/expenseRoutes'\\); console.log\\('OK'\\)\")",
+      "Bash(mkdir -p /tmp/clientzip)",
+      "Bash(unzip -o client.zip -d /tmp/clientzip)",
+      "Read(//tmp/clientzip/client/**)",
+      "Bash(node -e ' *)",
+      "Bash(timeout 25 node scripts/phone-app.jsect)",
+      "Bash(node -e \"require\\('./server.js'\\)\")",
+      "Bash(git config *)",
+      "Bash(git init *)"
+    ]
+  }
+}
