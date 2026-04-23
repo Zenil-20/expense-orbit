@@ -7,6 +7,7 @@ const {
 const { isAllowedCategory, normalizeCategoryName } = require("../utils/categoryUtils");
 const { getNextDueDate } = require("../utils/dateUtils");
 const { streamStatementPdf } = require("../services/pdfService");
+const { buildDateFilter } = require("../utils/expenseFilters");
 
 const ALLOWED_TYPES = ["recurring", "one-time", "flexible"];
 const ALLOWED_RECURRING_TYPES = ["daily", "weekly", "monthly", "yearly"];
@@ -332,8 +333,20 @@ exports.getTotal = async (req, res) => {
 
 exports.exportStatementPdf = async (req, res) => {
   try {
-    const expenses = await Expense.find({ user: req.user._id }).sort({ createdAt: -1 });
-    streamStatementPdf(res, { user: req.user, expenses });
+    const { filter, startDate, endDate } = req.query;
+
+    const built = buildDateFilter({ filter, startDate, endDate });
+    if (built.error) return res.status(400).json({ message: built.error });
+    const { dateFilter, rangeLabel, rangeStart, rangeEnd } = built;
+
+    const expenses = await Expense.find({ ...dateFilter, user: req.user._id })
+      .sort({ date: -1 });
+
+    streamStatementPdf(res, {
+      user: req.user,
+      expenses,
+      range: { label: rangeLabel, start: rangeStart, end: rangeEnd, preset: filter || "all" },
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -413,92 +426,14 @@ exports.getFilteredExpenses = async (req, res) => {
   try {
     const { filter, startDate, endDate, page = 1, limit = 50 } = req.query;
 
-    // 🔴 Validate filter
     if (!filter) {
       return res.status(400).json({ message: "filter is required" });
     }
 
-    let dateFilter = {}; // ✅ always initialize
-    const today = new Date();
+    const built = buildDateFilter({ filter, startDate, endDate });
+    if (built.error) return res.status(400).json({ message: built.error });
+    const { dateFilter } = built;
 
-    // 🔹 MONTHLY
-    if (filter === "monthly") {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      end.setHours(23, 59, 59, 999);
-
-      dateFilter = { date: { $gte: start, $lte: end } };
-
-    // 🔹 YEARLY
-    } else if (filter === "yearly") {
-      const start = new Date(today.getFullYear(), 0, 1);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(today.getFullYear(), 11, 31);
-      end.setHours(23, 59, 59, 999);
-
-      dateFilter = { date: { $gte: start, $lte: end } };
-
-    // 🔹 WEEKLY (Sunday → Saturday)
-    } else if (filter === "weekly") {
-      const temp = new Date(today);
-      const firstDayOfWeek = new Date(temp.setDate(temp.getDate() - temp.getDay()));
-      firstDayOfWeek.setHours(0, 0, 0, 0);
-
-      const temp2 = new Date(firstDayOfWeek);
-      const lastDayOfWeek = new Date(temp2.setDate(temp2.getDate() + 6));
-      lastDayOfWeek.setHours(23, 59, 59, 999);
-
-      dateFilter = { date: { $gte: firstDayOfWeek, $lte: lastDayOfWeek } };
-
-    // 🔹 DAILY
-    } else if (filter === "daily") {
-      const start = new Date(today);
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date(today);
-      end.setHours(23, 59, 59, 999);
-
-      dateFilter = { date: { $gte: start, $lte: end } };
-
-    // 🔹 CUSTOM RANGE
-    } else if (filter === "custom") {
-      if (!startDate || !endDate) {
-        return res.status(400).json({
-          message: "Start date and end date are required",
-        });
-      }
-
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-        return res.status(400).json({
-          message: "Invalid date format",
-        });
-      }
-
-      if (start > end) {
-        return res.status(400).json({
-          message: "Start date cannot be after end date",
-        });
-      }
-
-      start.setHours(0, 0, 0, 0);
-      end.setHours(23, 59, 59, 999);
-
-      dateFilter = { date: { $gte: start, $lte: end } };
-
-    // 🔴 INVALID FILTER
-    } else {
-      return res.status(400).json({
-        message: "Invalid filter type (daily, weekly, monthly, yearly, custom)",
-      });
-    }
-
-    // 🔹 PAGINATION
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;

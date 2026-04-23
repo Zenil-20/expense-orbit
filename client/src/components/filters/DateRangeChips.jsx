@@ -1,4 +1,5 @@
 import { Input } from "../ui";
+import { toInputDate } from "../../lib/format";
 
 const PRESETS = [
   { value: "all",     label: "All time" },
@@ -12,17 +13,10 @@ const PRESETS = [
 const clampFuture = (value, today) => (value && value > today ? today : value);
 const minDate = (a, b) => (a && b ? (a < b ? a : b) : a || b || undefined);
 
-const todayISO = () => {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
-};
-
 export default function DateRangeChips({ range, onChange, className = "", compact = false }) {
   const setRange = (patch) => onChange({ ...range, ...patch });
   const isCustom = range?.preset === "custom";
-  const today = todayISO();
+  const today = toInputDate(new Date());
 
   const selectPreset = (preset) => {
     onChange({

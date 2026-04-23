@@ -1,3 +1,5 @@
+export const APP_TIMEZONE = "Asia/Kolkata";
+
 const inr = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
@@ -12,32 +14,75 @@ export function formatDate(d) {
   if (!d) return "-";
   const date = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric", month: "short", year: "numeric",
+    timeZone: APP_TIMEZONE
+  });
 }
 
 export function formatShortDate(d) {
   if (!d) return "-";
   const date = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric", month: "short",
+    timeZone: APP_TIMEZONE
+  });
 }
 
+/** Break a Date into its IST calendar parts. */
+export function istParts(date = new Date()) {
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false
+  }).formatToParts(d);
+  const get = (t) => parts.find((p) => p.type === t)?.value;
+  return {
+    year: +get("year"),
+    month: +get("month"),
+    day: +get("day"),
+    hour: +get("hour"),
+    minute: +get("minute"),
+    second: +get("second")
+  };
+}
+
+/** Return the UTC instant at 00:00:00 IST for the given date's IST calendar day. */
+export function istStartOfDay(date = new Date()) {
+  const p = istParts(date);
+  if (!p) return null;
+  // IST is UTC+05:30 (no DST) → IST midnight = UTC (previous day) 18:30:00
+  return new Date(Date.UTC(p.year, p.month - 1, p.day, -5, -30, 0));
+}
+
+/** Return the UTC instant at 00:00:00 IST for the first day of the date's IST calendar month. */
+export function istStartOfMonth(date = new Date()) {
+  const p = istParts(date);
+  if (!p) return null;
+  return new Date(Date.UTC(p.year, p.month - 1, 1, -5, -30, 0));
+}
+
+/** Return YYYY-MM-DD for the given moment, using the IST calendar day. */
 export function toInputDate(d) {
-  if (!d) return "";
-  const date = d instanceof Date ? d : new Date(d);
-  if (Number.isNaN(date.getTime())) return "";
+  const date = d ? (d instanceof Date ? d : new Date(d)) : new Date();
+  const p = istParts(date);
+  if (!p) return "";
   const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 }
 
+/** Days between now and `d`, measured across IST calendar days. */
 export function daysUntil(d) {
   if (!d) return null;
-  const now = new Date();
-  const target = new Date(d);
-  const msPerDay = 1000 * 60 * 60 * 24;
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const end = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
-  return Math.round((end - start) / msPerDay);
+  const target = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(target.getTime())) return null;
+  const start = istStartOfDay(new Date()).getTime();
+  const end = istStartOfDay(target).getTime();
+  return Math.round((end - start) / 86400000);
 }
 
 export function dueLabel(d) {

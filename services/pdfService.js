@@ -39,6 +39,13 @@ function formatLongDate(d) {
   const date = d instanceof Date ? d : new Date(d);
   return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 }
+function formatCompactDate(d) {
+  const date = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(date.getTime())) return "—";
+  const dd = String(date.getDate()).padStart(2, "0");
+  const mon = MONTH_NAMES[date.getMonth()].slice(0, 3);
+  return `${dd} ${mon} ${date.getFullYear()}`;
+}
 function formatShortDate(d) {
   const date = d instanceof Date ? d : new Date(d);
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
@@ -105,12 +112,14 @@ function drawHeader(doc, meta) {
   doc.text("Service Level Agreement — Expense Report", xLeft, topY + 36, { width: 340 });
 
   const rightTop = topY + 2;
+  const rightX = 300;
+  const rightW = xRight - rightX;
   doc.fillColor(COLOR.subtle).font("Helvetica").fontSize(9);
-  doc.text(`Agreement No: ${meta.agreementNo}`, 360, rightTop,       { width: xRight - 360, align: "right" });
-  doc.text(`Generated: ${formatLongDate(meta.generatedAt)}`, 360, rightTop + 14, { width: xRight - 360, align: "right" });
-  doc.text(`Period: ${meta.period}`, 360, rightTop + 28,             { width: xRight - 360, align: "right" });
+  doc.text(`Agreement No: ${meta.agreementNo}`, rightX, rightTop,       { width: rightW, align: "right" });
+  doc.text(`Generated: ${formatLongDate(meta.generatedAt)}`, rightX, rightTop + 14, { width: rightW, align: "right" });
+  doc.text(`Period: ${meta.period}`, rightX, rightTop + 28,             { width: rightW, align: "right" });
   doc.fillColor(COLOR.text).font("Helvetica-Bold").fontSize(9);
-  doc.text(`Status: ${meta.status}`, 360, rightTop + 44,             { width: xRight - 360, align: "right" });
+  doc.text(`Status: ${meta.status}`, rightX, rightTop + 44,             { width: rightW, align: "right" });
 
   const ruleY = topY + 72;
   doc.save();
@@ -323,17 +332,32 @@ function buildCompanyName(user) {
   return `${first}'s company`;
 }
 
-function streamStatementPdf(res, { user, expenses }) {
+function streamStatementPdf(res, { user, expenses, range }) {
   const generatedAt = new Date();
+  const hasDates = range?.start && range?.end;
+  const dateSpan = hasDates ? `${formatCompactDate(range.start)} — ${formatCompactDate(range.end)}` : null;
+
+  let periodText;
+  if (range?.preset === "all" || !range?.preset) {
+    periodText = "All time";
+  } else if (range.preset === "custom") {
+    periodText = dateSpan || "Custom range";
+  } else {
+    periodText = dateSpan ? `${range.label} (${dateSpan})` : range.label || periodLabel(generatedAt);
+  }
+
   const meta = {
     companyName: buildCompanyName(user),
     agreementNo: agreementId(generatedAt),
     generatedAt,
-    period: periodLabel(generatedAt),
+    period: periodText,
     status: "ACTIVE"
   };
 
-  const filename = `SLA-ExpenseOrbit-${formatISODate(generatedAt).replace(/-/g, "")}.pdf`;
+  const rangeSuffix = range?.preset && range.preset !== "all"
+    ? `-${range.preset}${range.start ? "-" + formatISODate(range.start).replace(/-/g, "") : ""}${range.end ? "_" + formatISODate(range.end).replace(/-/g, "") : ""}`
+    : "";
+  const filename = `SLA-ExpenseOrbit-${formatISODate(generatedAt).replace(/-/g, "")}${rangeSuffix}.pdf`;
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
@@ -362,10 +386,10 @@ function streamStatementPdf(res, { user, expenses }) {
   drawSignatures(doc, meta);
 
   drawingFooters = true;
-  const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i++) {
+  const pageRange = doc.bufferedPageRange();
+  for (let i = 0; i < pageRange.count; i++) {
     doc.switchToPage(i);
-    drawFooter(doc, meta, i + 1, range.count);
+    drawFooter(doc, meta, i + 1, pageRange.count);
   }
 
   doc.end();

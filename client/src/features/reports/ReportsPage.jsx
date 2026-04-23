@@ -12,12 +12,12 @@ import DateRangeChips, { describeRange } from "../../components/filters/DateRang
 import { useExpenses } from "../expenses/useExpenses";
 import { useExpenseFilters, DEFAULTS as FILTER_DEFAULTS } from "../expenses/useExpenseFilters";
 import { useToast } from "../../context/ToastContext";
+import { api } from "../../lib/api";
 import { getToken } from "../../lib/auth";
 import { computeKpis, monthlySeries, categoryBreakdown, typeBreakdown } from "../dashboard/analytics";
 import { formatCurrency } from "../../lib/format";
 import { getCategoryMeta } from "../../lib/categories";
 
-const API_ROOT = import.meta.env.VITE_API_ROOT || "/api";
 const TREND_OPTIONS = [
   { value: 6,  label: "6 months" },
   { value: 12, label: "12 months" },
@@ -46,20 +46,29 @@ export default function ReportsPage() {
   }));
 
   const downloadPdf = async () => {
+    if (range.preset === "custom" && (!range.startDate || !range.endDate)) {
+      toast.warning("Pick a date range", "Choose From and To dates before exporting.");
+      return;
+    }
     setDownloading(true);
     try {
-      const res = await fetch(`${API_ROOT}/expenses/statement.pdf`, {
+      const res = await fetch(api.statementPdfUrl(range), {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       if (!res.ok) throw new Error(`Download failed (${res.status})`);
+
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const serverName = /filename="([^"]+)"/.exec(disposition)?.[1];
+      const fallback = `SLA-ExpenseOrbit-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.pdf`;
+
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `SLA-ExpenseOrbit-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.pdf`;
+      a.download = serverName || fallback;
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
-      toast.success("SLA statement ready", "The PDF has been downloaded.");
+      toast.success("SLA statement ready", `Covers ${describeRange(range)}.`);
     } catch (err) {
       toast.error("Couldn't generate PDF", err.message);
     } finally {
@@ -83,7 +92,7 @@ export default function ReportsPage() {
             {activeFilters > 0 && <span className="filter-trigger-count">{activeFilters}</span>}
           </div>
           <Button variant="primary" onClick={downloadPdf} loading={downloading}>
-            Download SLA PDF
+            {range.preset === "all" ? "Download SLA PDF" : `Download SLA · ${describeRange(range)}`}
           </Button>
         </div>
       </div>

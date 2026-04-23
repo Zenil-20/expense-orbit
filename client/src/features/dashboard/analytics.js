@@ -1,10 +1,24 @@
+import { istParts, istStartOfDay, istStartOfMonth } from "../../lib/format";
+
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+function istMonthKey(date) {
+  const p = istParts(date);
+  return p ? `${p.year}-${p.month - 1}` : null;
+}
+
+function istMonthOffsetStart(offset) {
+  const now = istParts(new Date());
+  const month = now.month - 1 + offset;
+  const year = now.year + Math.floor(month / 12);
+  const normMonth = ((month % 12) + 12) % 12;
+  return new Date(Date.UTC(year, normMonth, 1, -5, -30, 0));
+}
+
 export function computeKpis(expenses) {
-  const now = new Date();
-  const mStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-  const lastMStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const mStart = istStartOfMonth(new Date()).getTime();
+  const lastMStart = istMonthOffsetStart(-1).getTime();
+  const todayStart = istStartOfDay(new Date()).getTime();
 
   let total = 0, thisMonth = 0, lastMonth = 0, upcoming = 0, overdue = 0;
   let upcomingCount = 0, overdueCount = 0;
@@ -19,9 +33,11 @@ export function computeKpis(expenses) {
     }
     if (e.status === "overdue") { overdue += amount; overdueCount++; }
     if (e.type === "recurring" && e.status === "pending" && e.nextDueDate) {
-      const due = new Date(e.nextDueDate).getTime();
-      const diff = Math.round((due - todayStart) / 86400000);
-      if (diff >= 0 && diff <= 14) { upcoming += amount; upcomingCount++; }
+      const due = istStartOfDay(new Date(e.nextDueDate));
+      if (due) {
+        const diff = Math.round((due.getTime() - todayStart) / 86400000);
+        if (diff >= 0 && diff <= 14) { upcoming += amount; upcomingCount++; }
+      }
     }
   }
 
@@ -31,22 +47,23 @@ export function computeKpis(expenses) {
 }
 
 export function monthlySeries(expenses, months = 6) {
-  const now = new Date();
+  const now = istParts(new Date());
   const buckets = [];
   for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = now.month - 1 - i;
+    const year = now.year + Math.floor(m / 12);
+    const normMonth = ((m % 12) + 12) % 12;
     buckets.push({
-      key: `${d.getFullYear()}-${d.getMonth()}`,
-      label: MONTH_LABELS[d.getMonth()],
+      key: `${year}-${normMonth}`,
+      label: MONTH_LABELS[normMonth],
       value: 0
     });
   }
   const idx = new Map(buckets.map((b, i) => [b.key, i]));
   for (const e of expenses) {
-    const d = new Date(e.date);
-    if (Number.isNaN(d.getTime())) continue;
-    const k = `${d.getFullYear()}-${d.getMonth()}`;
-    const i = idx.get(k);
+    const key = istMonthKey(e.date);
+    if (!key) continue;
+    const i = idx.get(key);
     if (i !== undefined) buckets[i].value += Number(e.amount) || 0;
   }
   return buckets;

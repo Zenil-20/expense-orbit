@@ -51,5 +51,12 @@ export const api = {
   deleteExpense:(id) => request(`/expenses/${id}`, { method: "DELETE" }),
   testOverdue:  (id) => request(`/expenses/${id}/test-overdue-email`, { method: "POST", body: JSON.stringify({}) }),
 
-  statementPdfUrl: () => `${API_ROOT}/expenses/statement.pdf`
+  statementPdfUrl: (range) => {
+    const base = `${API_ROOT}/expenses/statement.pdf`;
+    if (!range || !range.preset || range.preset === "all") return base;
+    const qs = new URLSearchParams({ filter: range.preset });
+    if (range.startDate) qs.set("startDate", range.startDate);
+    if (range.endDate)   qs.set("endDate", range.endDate);
+    return `${base}?${qs.toString()}`;
+  }
 };
