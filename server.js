@@ -1,4 +1,5 @@
 require("dotenv").config({ quiet: true });
+process.env.TZ = process.env.TZ || "Asia/Kolkata";
 const express = require("express");
 const authRoutes = require("./routes/authRoutes");
 const connectDB = require("./config/db");

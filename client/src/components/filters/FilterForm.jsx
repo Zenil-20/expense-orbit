@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { RANGES } from "../../features/expenses/useExpenseFilters";
 import { api } from "../../lib/api";
 import { DEFAULT_CATEGORIES, getCategoryMeta } from "../../lib/categories";
 
@@ -32,19 +31,6 @@ export default function FilterForm({ filters, onChange }) {
 
   return (
     <div className="stack gap-5">
-      <Section label="Date range">
-        <div className="chip-row">
-          {Object.entries(RANGES).map(([key, r]) => (
-            <button
-              key={key}
-              type="button"
-              className={`chip ${filters.range === key ? "is-active" : ""}`}
-              onClick={() => onChange({ range: key })}
-            >{r.label}</button>
-          ))}
-        </div>
-      </Section>
-
       <Section label="Type">
         <div className="chip-row">
           {TYPES.map((t) => (

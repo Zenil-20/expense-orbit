@@ -9,7 +9,7 @@ export const RANGES = {
   "all": { label: "All time" }
 };
 
-export const DEFAULTS = { range: "6m", type: "all", status: "all", categories: [] };
+export const DEFAULTS = { range: "all", type: "all", status: "all", categories: [] };
 
 export function rangeStart(rangeKey) {
   const r = RANGES[rangeKey];

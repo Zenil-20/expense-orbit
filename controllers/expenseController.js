@@ -407,3 +407,133 @@ exports.testOverdueReminder = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// SUPPORT FOR CUSTOM FILTER APPLIED ON GET ALL EXPENSES WITH MONTHLY, YEARLY, WEEKLY, DAILY
+exports.getFilteredExpenses = async (req, res) => {
+  try {
+    const { filter, startDate, endDate, page = 1, limit = 50 } = req.query;
+
+    // 🔴 Validate filter
+    if (!filter) {
+      return res.status(400).json({ message: "filter is required" });
+    }
+
+    let dateFilter = {}; // ✅ always initialize
+    const today = new Date();
+
+    // 🔹 MONTHLY
+    if (filter === "monthly") {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+
+      dateFilter = { date: { $gte: start, $lte: end } };
+
+    // 🔹 YEARLY
+    } else if (filter === "yearly") {
+      const start = new Date(today.getFullYear(), 0, 1);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(today.getFullYear(), 11, 31);
+      end.setHours(23, 59, 59, 999);
+
+      dateFilter = { date: { $gte: start, $lte: end } };
+
+    // 🔹 WEEKLY (Sunday → Saturday)
+    } else if (filter === "weekly") {
+      const temp = new Date(today);
+      const firstDayOfWeek = new Date(temp.setDate(temp.getDate() - temp.getDay()));
+      firstDayOfWeek.setHours(0, 0, 0, 0);
+
+      const temp2 = new Date(firstDayOfWeek);
+      const lastDayOfWeek = new Date(temp2.setDate(temp2.getDate() + 6));
+      lastDayOfWeek.setHours(23, 59, 59, 999);
+
+      dateFilter = { date: { $gte: firstDayOfWeek, $lte: lastDayOfWeek } };
+
+    // 🔹 DAILY
+    } else if (filter === "daily") {
+      const start = new Date(today);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
+
+      dateFilter = { date: { $gte: start, $lte: end } };
+
+    // 🔹 CUSTOM RANGE
+    } else if (filter === "custom") {
+      if (!startDate || !endDate) {
+        return res.status(400).json({
+          message: "Start date and end date are required",
+        });
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({
+          message: "Invalid date format",
+        });
+      }
+
+      if (start > end) {
+        return res.status(400).json({
+          message: "Start date cannot be after end date",
+        });
+      }
+
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      dateFilter = { date: { $gte: start, $lte: end } };
+
+    // 🔴 INVALID FILTER
+    } else {
+      return res.status(400).json({
+        message: "Invalid filter type (daily, weekly, monthly, yearly, custom)",
+      });
+    }
+
+    // 🔹 PAGINATION
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    // 🔹 USER SAFETY (important if auth middleware fails)
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: "Unauthorized user" });
+    }
+
+    // 🔹 FETCH DATA + COUNT
+    const [expenses, total] = await Promise.all([
+      Expense.find({ ...dateFilter, user: req.user._id })
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Expense.countDocuments({ ...dateFilter, user: req.user._id }),
+    ]);
+
+    // 🔹 RESPONSE (ONLY ONE RESPONSE)
+    return res.status(200).json({
+      page: pageNum,
+      limit: limitNum,
+      count: expenses.length,
+      total,
+      totalPages: total === 0 ? 0 : Math.ceil(total / limitNum),
+      data: expenses,
+    });
+
+  } catch (error) {
+    console.error("Error in getFilteredExpenses:", error);
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  }
+};

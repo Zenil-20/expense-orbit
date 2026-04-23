@@ -602,6 +602,44 @@
 }
 .filter-bar .field { flex: 1 1 180px; min-width: 160px; gap: 2px; }
 
+.filter-range-bar { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px 14px; }
+
+.date-range { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+.date-range-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.date-range-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  color: var(--text-mute); text-transform: uppercase;
+  white-space: nowrap;
+}
+.date-range-chips { flex-wrap: wrap; }
+.date-range-dates { display: flex; gap: 10px; flex-wrap: wrap; }
+.date-range-dates .field { flex: 1 1 180px; min-width: 160px; gap: 2px; }
+
+.scope-hint {
+  font-size: 13px; color: var(--text-soft);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(45, 212, 191, 0.06);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+}
+.scope-hint strong { color: #F8FAFC; }
+
+@media (max-width: 560px) {
+  .date-range-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin: 0 -4px;
+    scrollbar-width: none;
+  }
+  .date-range-chips::-webkit-scrollbar { display: none; }
+  .date-range-chips .chip { scroll-snap-align: start; flex-shrink: 0; }
+  .date-range-head { gap: 6px; }
+  .date-range-label { font-size: 11px; }
+}
+
 /* === OTP input === */
 .otp-input {
   letter-spacing: 0.4em;

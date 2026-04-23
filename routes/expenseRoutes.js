@@ -9,6 +9,7 @@ router.post("/", ctrl.createExpense);
 router.get("/statement.pdf", ctrl.exportStatementPdf);
 router.post("/test-email", ctrl.testEmail);
 router.post("/:id/test-overdue-email", ctrl.testOverdueReminder);
+router.get("/filter", ctrl.getFilteredExpenses);
 router.get("/", ctrl.getAllExpenses);
 router.get("/total", ctrl.getTotal);
 router.get("/:id", ctrl.getExpenseById);

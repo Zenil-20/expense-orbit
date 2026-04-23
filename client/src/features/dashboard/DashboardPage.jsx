@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import KpiTile from "../../components/charts/KpiTile";
+import DateRangeChips, { describeRange } from "../../components/filters/DateRangeChips";
 import HeroCard from "./HeroCard";
 import ActivityFeed from "./ActivityFeed";
 import UpcomingDues from "./UpcomingDues";
@@ -10,7 +11,8 @@ import { computeKpis, monthlySeries, categoryBreakdown } from "./analytics";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { expenses, loading } = useExpenses();
+  const { expenses, loading, range, setRange } = useExpenses();
+  const isScoped = range.preset !== "all";
 
   const k = loading ? null : computeKpis(expenses);
   const series = loading ? [] : monthlySeries(expenses, 6).map((m) => m.value);
@@ -29,10 +31,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <div className="filter-bar filter-range-bar" style={{ marginBottom: 18 }}>
+        <DateRangeChips range={range} onChange={setRange} />
+      </div>
+
       {loading ? (
         <SkeletonDashboard />
       ) : (
         <div className="stack gap-5">
+          {isScoped && (
+            <div className="scope-hint">
+              Showing <strong>{expenses.length}</strong> expense{expenses.length === 1 ? "" : "s"} in <strong>{describeRange(range)}</strong>.
+            </div>
+          )}
           <HeroCard
             thisMonth={k.thisMonth}
             lastMonth={k.lastMonth}

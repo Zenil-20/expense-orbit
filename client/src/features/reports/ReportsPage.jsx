@@ -8,6 +8,7 @@ import AreaChart from "../../components/charts/AreaChart";
 import BarChart from "../../components/charts/BarChart";
 import DonutChart from "../../components/charts/DonutChart";
 import FilterForm, { countActive } from "../../components/filters/FilterForm";
+import DateRangeChips, { describeRange } from "../../components/filters/DateRangeChips";
 import { useExpenses } from "../expenses/useExpenses";
 import { useExpenseFilters, DEFAULTS as FILTER_DEFAULTS } from "../expenses/useExpenseFilters";
 import { useToast } from "../../context/ToastContext";
@@ -24,7 +25,7 @@ const TREND_OPTIONS = [
 ];
 
 export default function ReportsPage() {
-  const { expenses, loading } = useExpenses();
+  const { expenses, loading, range, setRange } = useExpenses();
   const { filtered, filters, update, reset } = useExpenseFilters(expenses);
   const toast = useToast();
   const [trendMonths, setTrendMonths] = useState(12);
@@ -87,12 +88,21 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      <div className="filter-bar filter-range-bar" style={{ marginBottom: 18 }}>
+        <DateRangeChips range={range} onChange={setRange} />
+      </div>
+
       {loading ? (
         <div className="skeleton" style={{ height: 400 }} />
       ) : expenses.length === 0 ? (
         <EmptyState
-          title="No expenses to analyze yet"
-          description="Add a few expenses and return here for charts, filters, and a printable statement."
+          title={range.preset === "all" ? "No expenses to analyze yet" : "No expenses in this range"}
+          description={
+            range.preset === "all"
+              ? "Add a few expenses and return here for charts, filters, and a printable statement."
+              : `Nothing found for ${describeRange(range)}. Try a wider range.`
+          }
+          action={range.preset !== "all" ? <Button variant="secondary" onClick={() => setRange({ preset: "all", startDate: "", endDate: "" })}>Show all time</Button> : null}
         />
       ) : (
         <>

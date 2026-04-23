@@ -38,6 +38,12 @@ export const api = {
   resendTestEmail:    ()  => request("/auth/reminder-email/test",        { method: "POST", body: JSON.stringify({}) }),
 
   expenses:     ()  => request("/expenses"),
+  filteredExpenses: ({ filter, startDate, endDate, page = 1, limit = 100 } = {}) => {
+    const qs = new URLSearchParams({ filter, page: String(page), limit: String(limit) });
+    if (startDate) qs.set("startDate", startDate);
+    if (endDate)   qs.set("endDate", endDate);
+    return request(`/expenses/filter?${qs.toString()}`);
+  },
   expenseTotal: ()  => request("/expenses/total"),
   createExpense:(p) => request("/expenses", { method: "POST", body: JSON.stringify(p) }),
   updateExpense:(id, p) => request(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(p) }),

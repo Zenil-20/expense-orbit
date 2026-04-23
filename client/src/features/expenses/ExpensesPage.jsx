@@ -14,7 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 export default function ExpensesPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const { expenses, loading, reload } = useExpenses();
+  const { expenses, loading, reload, range, setRange, loadMore, hasMore } = useExpenses();
   const [categories, setCategories] = useState([]);
   const [search, setSearch] = useSearchParams();
 
@@ -114,31 +114,50 @@ export default function ExpensesPage() {
         <Button variant="primary" onClick={openNew}>+ Add expense</Button>
       </div>
 
-      <FilterBar value={filter} onChange={setFilter} categories={categories} />
+      <FilterBar
+        value={filter}
+        onChange={setFilter}
+        range={range}
+        onRangeChange={setRange}
+        categories={categories}
+      />
 
-      {loading ? (
+      {loading && expenses.length === 0 ? (
         <div className="stack gap-3">
           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 72 }} />)}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={expenses.length === 0 ? "No expenses yet" : "Nothing matches those filters"}
-          description={expenses.length === 0 ? "Add your first expense to start tracking." : "Try clearing a filter."}
-          action={expenses.length === 0 ? <Button variant="primary" onClick={openNew}>+ Add expense</Button> : null}
+          title={emptyTitle(expenses, range)}
+          description={emptyDescription(expenses, range)}
+          action={
+            expenses.length === 0 && range.preset === "all"
+              ? <Button variant="primary" onClick={openNew}>+ Add expense</Button>
+              : null
+          }
         />
       ) : (
-        <div className="exp-list">
-          {filtered.map((e) => (
-            <ExpenseCard
-              key={e._id}
-              expense={e}
-              onEdit={openEdit}
-              onDelete={setDeleteTarget}
-              onMarkPaid={onMarkPaid}
-              onTestOverdue={onTestOverdue}
-            />
-          ))}
-        </div>
+        <>
+          <div className="exp-list">
+            {filtered.map((e) => (
+              <ExpenseCard
+                key={e._id}
+                expense={e}
+                onEdit={openEdit}
+                onDelete={setDeleteTarget}
+                onMarkPaid={onMarkPaid}
+                onTestOverdue={onTestOverdue}
+              />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="stack" style={{ alignItems: "center", marginTop: 16 }}>
+              <Button variant="ghost" onClick={loadMore} disabled={loading}>
+                {loading ? "Loading…" : "Load more"}
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       <Modal
@@ -172,4 +191,22 @@ export default function ExpensesPage() {
       </Modal>
     </div>
   );
+}
+
+function emptyTitle(expenses, range) {
+  if (range.preset === "custom" && (!range.startDate || !range.endDate)) return "Pick a date range";
+  if (expenses.length === 0 && range.preset !== "all") return "No expenses in this range";
+  if (expenses.length === 0) return "No expenses yet";
+  return "Nothing matches those filters";
+}
+
+function emptyDescription(expenses, range) {
+  if (range.preset === "custom" && (!range.startDate || !range.endDate)) {
+    return "Choose a From and To date to see matching expenses.";
+  }
+  if (expenses.length === 0 && range.preset !== "all") {
+    return "Try a wider date range or reset to All time.";
+  }
+  if (expenses.length === 0) return "Add your first expense to start tracking.";
+  return "Try clearing a filter.";
 }
