@@ -6,6 +6,8 @@ import LoginPage from "../features/auth/LoginPage";
 import RegisterPage from "../features/auth/RegisterPage";
 import DashboardPage from "../features/dashboard/DashboardPage";
 import ExpensesPage from "../features/expenses/ExpensesPage";
+import SplitwisePage from "../features/splitwise/SplitwisePage";
+import GroupDetailPage from "../features/splitwise/GroupDetailPage";
 import ReportsPage from "../features/reports/ReportsPage";
 import SettingsPage from "../features/settings/SettingsPage";
 
@@ -23,6 +25,8 @@ export default function AppRoutes() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="splitwise" element={<SplitwisePage />} />
+          <Route path="splitwise/groups/:id" element={<GroupDetailPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

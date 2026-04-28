@@ -10,6 +10,10 @@ export const NAV_ITEMS = [
     icon: <svg {...s}><path d="M4 7h16M4 12h16M4 17h10" /></svg>
   },
   {
+    to: "/app/splitwise", label: "Splitwise",
+    icon: <svg {...s}><circle cx="8" cy="8" r="3" /><circle cx="17" cy="16" r="3" /><path d="M10.5 10.5l4 4" /></svg>
+  },
+  {
     to: "/app/reports", label: "Reports",
     icon: <svg {...s}><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-6" /></svg>
   },

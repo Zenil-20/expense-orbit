@@ -4,6 +4,9 @@ const express = require("express");
 const authRoutes = require("./routes/authRoutes");
 const connectDB = require("./config/db");
 const routes = require("./routes/expenseRoutes");
+const splitwiseRoutes = require("./routes/splitwiseRoutes");
+const friendRoutes = require("./routes/friendRoutes");
+const groupRoutes = require("./routes/groupRoutes");
 const startCron = require("./cron/cronJob");
 
 const app = express();
@@ -24,6 +27,9 @@ app.use(express.json());
 app.get("/api/health", (req, res) => res.json({ ok: true, service: "expense-orbit-api" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/expenses", routes);
+app.use("/api/splitwise", splitwiseRoutes);
+app.use("/api/friends", friendRoutes);
+app.use("/api/groups", groupRoutes);
 
 const startServer = async () => {
     try {

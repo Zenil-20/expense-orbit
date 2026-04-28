@@ -51,6 +51,23 @@ export const api = {
   deleteExpense:(id) => request(`/expenses/${id}`, { method: "DELETE" }),
   testOverdue:  (id) => request(`/expenses/${id}/test-overdue-email`, { method: "POST", body: JSON.stringify({}) }),
 
+  friendsList:    ()      => request("/friends"),
+  inviteFriend:   (email) => request("/friends/invite",       { method: "POST", body: JSON.stringify({ email }) }),
+  acceptFriend:   (id)    => request(`/friends/${id}/accept`, { method: "POST", body: JSON.stringify({}) }),
+  declineFriend:  (id)    => request(`/friends/${id}/decline`,{ method: "POST", body: JSON.stringify({}) }),
+  removeFriend:   (id)    => request(`/friends/${id}`,        { method: "DELETE" }),
+
+  splitwiseList:    ()  => request("/splitwise"),
+  createEqualSplit: (p) => request("/splitwise/equal",   { method: "POST", body: JSON.stringify(p) }),
+  createUnequalSplit:(p)=> request("/splitwise/unequal", { method: "POST", body: JSON.stringify(p) }),
+
+  groupsList:    ()    => request("/groups"),
+  createGroup:   (p)   => request("/groups", { method: "POST", body: JSON.stringify(p) }),
+  getGroup:      (id)  => request(`/groups/${id}`),
+  addGroupMembers: (id, memberIds) => request(`/groups/${id}/members`, { method: "POST", body: JSON.stringify({ memberIds }) }),
+  settleGroup:   (id)  => request(`/groups/${id}/settle`, { method: "POST", body: JSON.stringify({}) }),
+  markSettlementPaid: (gid, sid) => request(`/groups/${gid}/settlements/${sid}/mark-paid`, { method: "POST", body: JSON.stringify({}) }),
+
   statementPdfUrl: (range) => {
     const base = `${API_ROOT}/expenses/statement.pdf`;
     if (!range || !range.preset || range.preset === "all") return base;

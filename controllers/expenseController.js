@@ -293,15 +293,22 @@ exports.markPaid = async (req, res) => {
   }
 };
 
-// DELETE
+// DELETE — personal expenses only. Splitwise/group expenses are immutable for audit integrity.
 exports.deleteExpense = async (req, res) => {
   try {
-    const exp = await Expense.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const target = await Expense.findOne({ _id: req.params.id });
+    if (!target) return res.status(404).json({ message: "Expense not found" });
 
-    if (!exp) {
+    // Splitwise expenses have no `user` field but do have group/paidBy/splitBetween — block delete.
+    if (!target.user || target.group || target.paidBy || (target.splitBetween && target.splitBetween.length)) {
+      return res.status(403).json({ message: "Splitwise expenses can't be deleted — they're shared with other members" });
+    }
+
+    if (String(target.user) !== String(req.user._id)) {
       return res.status(404).json({ message: "Expense not found" });
     }
 
+    await target.deleteOne();
     res.json({ msg: "Deleted" });
   } catch (error) {
     res.status(400).json({ message: error.message });

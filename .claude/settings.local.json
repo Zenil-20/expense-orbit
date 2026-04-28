@@ -20,7 +20,9 @@
       "WebFetch(domain:expense-orbit-api.onrender.com)",
       "WebFetch(domain:expense-orbit-alpha.vercel.app)",
       "Bash(curl -sL https://expense-orbit-alpha.vercel.app/)",
-      "Bash(curl -sL https://expense-orbit-alpha.vercel.app/assets/index-KRz_WBKl.js)"
+      "Bash(curl -sL https://expense-orbit-alpha.vercel.app/assets/index-KRz_WBKl.js)",
+      "Bash(node -e \"require\\('./routes/friendRoutes'\\); require\\('./routes/groupRoutes'\\); console.log\\('routes loaded OK'\\);\")",
+      "Bash(node -e \"require\\('./controllers/splitwiseController'\\); console.log\\('OK'\\);\")"
     ]
   }
 }
