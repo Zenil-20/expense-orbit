@@ -5,6 +5,10 @@ const User = require("../models/user");
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Send an invite by exact email. Email is never browseable — discovery requires knowing the address.
+// Privacy: the response intentionally does NOT reveal whether the email is registered on the platform.
+// A successful "we'll let them know" response is returned regardless. Pre-existing relationships
+// (already-friends / pending) DO surface to the inviter, but those only fire when the inviter has
+// previously had an interaction with this email, so they aren't a discovery vector.
 exports.invite = async (req, res) => {
   try {
     const email = String(req.body?.email || "").trim().toLowerCase();
@@ -16,9 +20,13 @@ exports.invite = async (req, res) => {
       return res.status(400).json({ message: "You can't invite yourself" });
     }
 
+    const GENERIC_MESSAGE = "If an account uses that email, we've sent them an invite to connect.";
+
     const target = await User.findOne({ email }).select("_id name email");
     if (!target) {
-      return res.status(404).json({ message: "No account on the platform uses this email" });
+      // No-op: don't write a Friendship doc against a non-existent user, but return the same
+      // shape as a successful invite so the inviter can't probe whether the email is registered.
+      return res.status(200).json({ message: GENERIC_MESSAGE });
     }
 
     // If a friendship already exists either direction, surface its status instead of creating duplicates.
@@ -47,16 +55,16 @@ exports.invite = async (req, res) => {
       existing.requester = req.user._id;
       existing.recipient = target._id;
       await existing.save();
-      return res.status(201).json({ message: `Invite re-sent to ${target.name}`, friendship: existing });
+      return res.status(200).json({ message: GENERIC_MESSAGE });
     }
 
-    const friendship = await Friendship.create({
+    await Friendship.create({
       requester: req.user._id,
       recipient: target._id,
       status: "pending"
     });
 
-    res.status(201).json({ message: `Invite sent to ${target.name}`, friendship });
+    res.status(200).json({ message: GENERIC_MESSAGE });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

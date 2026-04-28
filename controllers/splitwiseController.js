@@ -196,7 +196,6 @@ exports.createEqualSplitExpense = async (req, res) => {
         expense = await populateExpense(expense._id);
         res.status(201).json(expense);
     } catch (error) {
-        console.error('[splitwise] error:', error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -257,7 +256,6 @@ exports.createUnequalSplitExpense = async (req, res) => {
         expense = await populateExpense(expense._id);
         res.status(201).json(expense);
     } catch (error) {
-        console.error('[splitwise] error:', error);
         res.status(400).json({ message: error.message });
     }
 };

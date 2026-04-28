@@ -50,19 +50,63 @@ const expenseSchema = new mongoose.Schema(
     ],
 
     // ── Common ──
-    name: { type: String, required: true, trim: true },
-    amount: { type: Number, required: true, min: 0.01 },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: [120, "Expense name must be 120 characters or less"]
+    },
+    amount: { type: Number, required: true, min: [0.01, "Amount must be greater than 0"] },
     date: { type: Date, default: Date.now },
 
     // ── Personal-only fields (kept for back-compat with existing personal-expense code) ──
-    type: { type: String, enum: ["recurring", "one-time", "flexible", null], default: null },
-    recurringType: { type: String, default: null },
+    // `type` accepts null so splitwise-mode docs (which don't carry a personal type) validate cleanly.
+    type: {
+      type: String,
+      enum: {
+        values: ["recurring", "one-time", "flexible", null],
+        message: "Invalid expense type"
+      },
+      default: null
+    },
+    recurringType: {
+      type: String,
+      enum: {
+        values: ["daily", "weekly", "monthly", "yearly", null],
+        message: "Invalid recurring frequency"
+      },
+      default: null
+    },
     nextDueDate: { type: Date, default: null },
-    category: { type: String, default: null },
-    status: { type: String, default: "pending" },
-    email: { type: String, default: null },
+    category: {
+      type: String,
+      trim: true,
+      maxlength: [60, "Category must be 60 characters or less"],
+      default: null
+    },
+    status: {
+      type: String,
+      enum: {
+        values: ["pending", "paid", "overdue"],
+        message: "Invalid expense status"
+      },
+      default: "pending"
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      match: [/.+@.+\..+/, "Enter a valid email address"],
+      default: null
+    },
     reminderEmailVerified: { type: Boolean, default: false },
-    pendingReminderEmail: { type: String, default: null },
+    pendingReminderEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      match: [/.+@.+\..+/, "Enter a valid pending reminder email address"],
+      default: null
+    },
     reminderOtpHash: { type: String, default: null },
     reminderOtpExpiresAt: { type: Date, default: null }
   },
